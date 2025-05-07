@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
-from io import StringIO
+from io import StringIO, BytesIO
 
 def clean_phone_number(phone):
     digits = re.sub(r'\D', '', str(phone))
@@ -13,28 +13,31 @@ def clean_phone_number(phone):
         return digits
     return f'+{digits}'
 
-st.title("Phone Number Formatter Tool")
+st.title("📞 Phone Number Formatter Tool (Batch CSVs)")
 
-uploaded_file = st.file_uploader("Upload CSV File", type="csv")
+uploaded_files = st.file_uploader("Upload one or more CSV files", type="csv", accept_multiple_files=True)
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+if uploaded_files:
+    for file in uploaded_files:
+        st.subheader(f"Processing: {file.name}")
+        try:
+            df = pd.read_csv(file)
+            phone_col = next((col for col in df.columns if col.lower() == 'phone number'), None)
 
-    # Find 'phone number' column (case-insensitive)
-    phone_col = next((col for col in df.columns if col.lower() == 'phone number'), None)
-    if not phone_col:
-        st.error("No 'phone number' column found in the uploaded CSV.")
-    else:
-        df['phone number formatted'] = df[phone_col].apply(clean_phone_number)
+            if not phone_col:
+                st.error(f"No 'phone number' column found in {file.name}")
+                continue
 
-        st.success("Phone numbers formatted!")
-        st.dataframe(df)
+            df['phone number formatted'] = df[phone_col].apply(clean_phone_number)
+            st.success(f"{file.name} formatted successfully!")
+            st.dataframe(df)
 
-        # Allow download
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "Download Updated CSV",
-            csv,
-            "formatted_numbers.csv",
-            "text/csv",
-        )
+            csv_bytes = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label=f"Download {file.name} (formatted)",
+                data=csv_bytes,
+                file_name=f"formatted_{file.name}",
+                mime='text/csv'
+            )
+        except Exception as e:
+            st.error(f"Error processing {file.name}: {e}")
