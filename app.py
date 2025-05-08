@@ -4,14 +4,24 @@ import re
 from io import StringIO, BytesIO
 
 def clean_phone_number(phone):
-    digits = re.sub(r'\D', '', str(phone))
-    if digits.startswith('1') and len(digits) == 11:
-        return f'+{digits}'
-    elif len(digits) == 10:
-        return f'+1{digits}'
-    elif digits.startswith('+') and len(digits) > 11:
-        return digits
-    return f'+{digits}'
+    if not phone:
+        return ''
+
+    phone = str(phone).strip()
+    
+    # Remove everything except numbers
+    digits_only = re.sub(r'\D', '', phone)
+
+    # Normalize to +1XXXXXXXXXX format
+    if digits_only.startswith('1') and len(digits_only) == 11:
+        return f'+{digits_only}'
+    elif len(digits_only) == 10:
+        return f'+1{digits_only}'
+    elif phone.startswith('+') and len(digits_only) > 10:
+        return f'+{digits_only}'  # Retain original + if valid
+    else:
+        return f'+{digits_only}'
+
 
 st.title("📞 Phone Number Formatter Tool (Batch CSVs)")
 
